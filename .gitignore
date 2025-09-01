@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+
+.env
+.venv
+.claude
+
+face_features.parquet
+
+data_ingestion/.env
+data_ingestion/google_api_luker.json
+

@@ -1,0 +1,1 @@
+The project is moving data from various sources (S3 files, db, api) to postgresql external schema (to DB_URL env variable)

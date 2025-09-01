@@ -1,0 +1,14 @@
+deepface
+insightface
+onnxruntime-gpu
+tf-keras
+pandas
+numpy
+sqlalchemy
+psycopg2
+boto3
+pyarrow
+fastapi
+uvicorn
+dotenv
+# opencv-python-headless==4.8.0.76
