@@ -1,6 +1,6 @@
 import marimo
 
-__generated_with = "0.15.0"
+__generated_with = "0.15.2"
 app = marimo.App()
 
 
@@ -54,7 +54,7 @@ def _():
     from locations.population_density.population_map import CzechPopulationMapper
 
     population_mapper = CzechPopulationMapper()
-    population_mapper.prepare_data()
+    population_mapper.prepare_data(engine)
 
     location_dimensions = {
         'prague': { 'longitude': (14,15), 'latitude': (49.7,50.3)}
@@ -844,21 +844,25 @@ def _(recom):
     top_referrers = recom.groupby("id_person_recommendation").agg(
         total_referrals=("id_person", "count"),
         successful=("success_closed", "sum")
-    ).sort_values(by="successful", ascending=False)
+    ).sort_values(by="total_referrals", ascending=False)
     top_referrers
+    return (top_referrers,)
 
+
+@app.cell
+def _(top_referrers):
+    top_referrers.total_referrals.value_counts(normalize=True)
     return
 
 
 @app.cell
 def _(recom):
-    recom['closed_month'] = recom['closed_date'].dt.to_period('M')
+    recom['closed_month'] = recom['closed_date'].dt.to_period('W')
     conversion_by_month = recom.groupby('closed_month').agg(
         referrals=('referral', 'sum'),
         successes=('success_closed', 'sum')
     )
     conversion_by_month['conversion_rate'] = conversion_by_month['successes'] / conversion_by_month['referrals']
-
     return (conversion_by_month,)
 
 
@@ -869,16 +873,97 @@ def _(conversion_by_month):
 
 
 @app.cell
-def _(plt, recom):
+def _():
+    # import networkx as nx
+
+    # recommender_graph = nx.DiGraph()
+    # # _edges = recomTopByCount[['id_person_recommendation', 'id_person']].head(500).dropna().values
+    # recommender_graph.add_edges_from(recom[['id_person_recommendation', 'id_person']].head(500).dropna().values)
+
+    # plt.figure(figsize=(10, 10))
+    # nx.draw(recommender_graph, with_labels=False, node_size=20, arrows=True)
+    # plt.show()
+    return
+
+
+@app.cell
+def _(plt):
     import networkx as nx
 
-    G = nx.DiGraph()
-    _edges = recom[['id_person_recommendation', 'id_person']].dropna().values
-    G.add_edges_from(_edges)
+    def plot_top_nodes(G, top_nodes, layout='spring', figsize=(10, 10), seed=42, label_top=True):
+        """
+        Plot a subgraph of top_nodes and the people they point to (successors).
 
-    plt.figure(figsize=(10, 10))
-    nx.draw(G, with_labels=False, node_size=20, arrows=True)
-    plt.show()
+        Parameters
+        ----------
+        G : nx.DiGraph
+            The recommendation graph.
+        top_nodes : list
+            List of node IDs (e.g., from out-degree, PageRank, etc.).
+        layout : str
+            Layout type: 'spring', 'kamada_kawai', 'circular', 'shell', or 'random'.
+        figsize : tuple
+            Size of the matplotlib figure.
+        seed : int
+            Random seed for layout reproducibility.
+        label_top : bool
+            Whether to show labels for the top_nodes.
+        """
+        # Collect neighbors (recommended people)
+        neighbors = set()
+        for n in top_nodes:
+            neighbors.update(G.successors(n))
+
+        sub_nodes = set(top_nodes) | neighbors
+        subG = G.subgraph(sub_nodes)
+
+        # Choose layout
+        if layout == 'spring':
+            pos = nx.spring_layout(subG, seed=seed)
+        elif layout == 'kamada_kawai':
+            pos = nx.kamada_kawai_layout(subG)
+        elif layout == 'circular':
+            pos = nx.circular_layout(subG)
+        elif layout == 'shell':
+            pos = nx.shell_layout(subG)
+        elif layout == 'random':
+            pos = nx.random_layout(subG)
+        else:
+            raise ValueError(f"Unsupported layout: {layout}")
+
+        # Plot
+        plt.figure(figsize=figsize)
+        nx.draw_networkx_nodes(subG, pos, nodelist=top_nodes,
+                               node_color="red", node_size=200, alpha=0.8, label="Top nodes")
+        nx.draw_networkx_nodes(subG, pos, nodelist=list(neighbors),
+                               node_color="skyblue", node_size=50, alpha=0.6, label="Neighbors")
+        nx.draw_networkx_edges(subG, pos, arrows=True, alpha=0.4)
+
+        if label_top:
+            nx.draw_networkx_labels(subG, pos,
+                                    labels={n: str(n) for n in top_nodes},
+                                    font_size=8, font_color="black")
+
+        plt.legend()
+        plt.axis("off")
+        plt.title(f"Top Nodes and Their Referrals ({layout} layout)")
+        plt.show()
+
+        return subG
+
+    return nx, plot_top_nodes
+
+
+@app.cell
+def _(nx, plot_top_nodes, recom):
+    recommender_graph = nx.DiGraph()
+    recommender_graph.add_edges_from(recom[['id_person_recommendation', 'id_person']].dropna().values)
+
+    # Out-degree top recommenders - how many people each person recommended
+    out_degrees = dict(recommender_graph.out_degree())
+    top_out = [n for n, _ in sorted(out_degrees.items(), key=lambda x: x[1], reverse=True)[:200]]
+    plot_top_nodes(recommender_graph, top_out, layout='spring')
+
 
     return
 

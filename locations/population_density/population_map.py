@@ -5,6 +5,8 @@ from matplotlib.colors import LogNorm
 import requests
 import zipfile
 import os
+from sqlalchemy import create_engine
+from dotenv import load_dotenv
 
 # Set style
 plt.style.use('seaborn-v0_8-darkgrid')
@@ -12,9 +14,6 @@ sns.set_palette("viridis")
 
 class CzechPopulationMapper:
     def __init__(self):
-        self.base_dir = os.path.dirname(__file__)
-        self.data_dir = os.path.join(self.base_dir, "czech_population_data")
-        os.makedirs(self.data_dir, exist_ok=True)
         self.df = None
 
     def download_worldpop_data(self):
@@ -41,22 +40,14 @@ class CzechPopulationMapper:
             print(f"❌ Error downloading WorldPop data: {e}")
             return False
 
-    def prepare_data(self):
-        """Load Czech population CSV into DataFrame"""
-        csv_files = [f for f in os.listdir(self.data_dir) if f.endswith(".csv")]
-        if not csv_files:
-            print("❌ No CSV file found in data directory")
-            return
-
-        csv_path = os.path.join(self.data_dir, csv_files[0])
-        print(f"Loading data from {csv_path}...")
-        df = pd.read_csv(csv_path)
-        df = df.rename(columns={"X": "longitude", "Y": "latitude", "Z": "density"})
-        df = df[df["density"] > 0]
-
-        self.df = df
-        print(f"✅ Loaded DataFrame with {len(df)} rows")
-
+    def prepare_data(self, engine):
+        """Load Czech population data from database or CSV fallback"""
+        print("Loading data from database...")
+        query = "SELECT longitude, latitude, density FROM external.population_density"
+        self.df = pd.read_sql(query, engine)
+        print(f"✅ Loaded DataFrame with {len(self.df)} rows from database")
+        return
+                
     def create_population_density_map_grid(self, ax, what = None):
         """Plot WorldPop Czech population density on given matplotlib Axes using DataFrame"""
 

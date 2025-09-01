@@ -5,7 +5,7 @@ __pycache__/
 .venv
 .claude
 
-face_features.parquet
+data_ingestion_files.zip
 
 data_ingestion/.env
 data_ingestion/google_api_luker.json

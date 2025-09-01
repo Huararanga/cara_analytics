@@ -6,7 +6,7 @@ from data_ingestion.data_sources.config import Base
 from data_ingestion.utils.file_loader import initS3
 from data_ingestion.db.postgres import initPostgres
 from data_ingestion.db.central import initCentral
-from data_ingestion.loaders import face_features, czech_cities, zts_list, person_recommendation
+from data_ingestion.loaders import face_features, czech_cities, zts_list, person_recommendation, population_density
 
 load_dotenv()
 
@@ -20,6 +20,7 @@ S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", "minioadmin")
 S3_FILE_FACE_FEATURES = os.getenv("S3_FILE_FACE_FEATURES", "face_features.parquet")
 S3_FILE_CZECH_CITIES = os.getenv("S3_FILE_CZECH_CITIES", "face_features.parquet")
 S3_FILE_ZTS_LIST = os.getenv("S3_FILE_ZTS_LIST", "zts_list.json")
+S3_FILE_POPULATION_DENSITY = os.getenv("S3_FILE_POPULATION_DENSITY", "population_density.csv")
 
 def main():
     initS3(S3_ENDPOINT,S3_ACCESS_KEY, S3_SECRET_KEY);
@@ -35,6 +36,8 @@ def main():
     zts_list.run(S3_BUCKET, S3_FILE_ZTS_LIST);
 
     person_recommendation.run()
+    
+    population_density.run(S3_BUCKET, S3_FILE_POPULATION_DENSITY)
 
 if __name__ == "__main__":
     main()

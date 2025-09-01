@@ -31,7 +31,7 @@
 3. export by "jupyter-nbconvert ZubovaKrizovka.ipynb --to html"
 
 ## Data ingestion
-This project feeds data from various data sources into cis_war db for future processing
+This project feeds data from various data sources into cis_war db for future processing. Data for the job are provided by S3(minio) contents of  data_ingestion_files.zip must be uploaded there first
 
 To run:
 ```bash
