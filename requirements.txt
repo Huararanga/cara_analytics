@@ -1,0 +1,22 @@
+marimo
+deepface
+insightface
+onnxruntime-gpu
+tf-keras
+pandas
+numpy
+sqlalchemy
+pymysql
+psycopg2
+boto3
+botocore
+pyarrow
+fastapi
+uvicorn
+python-dotenv
+seaborn
+ipywidgets
+geopandas
+hmmlearn
+xgboost
+# opencv-python-headless==4.8.0.76
