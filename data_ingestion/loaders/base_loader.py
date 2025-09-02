@@ -33,7 +33,17 @@ class BaseLoader:
         # Replace NaN/pd.NA in all other columns
         df = df.where(df.notna(), None)
 
-        return df.to_dict(orient="records")
+        # Convert to dict and ensure nan values become None
+        records = df.to_dict(orient="records")
+        
+        # Post-process to handle any remaining nan values
+        import math
+        for record in records:
+            for key, value in record.items():
+                if pd.isna(value) or (isinstance(value, float) and math.isnan(value)):
+                    record[key] = None
+        
+        return records
 
     def load(self, df, method="bulk_core", chunksize=1000):
         """
