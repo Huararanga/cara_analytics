@@ -50,11 +50,9 @@ def _():
     import lib.hmm as hmm
     import lib.geo as geo
     import lib.lost_donors as lost_donors
+    import lib.draw as draw_module
 
-    from locations.population_density.population_map import CzechPopulationMapper
-
-    population_mapper = CzechPopulationMapper()
-    population_mapper.prepare_data(engine)
+    population_mapper = draw_module.setup_population_mapper(engine)
 
     location_dimensions = {
         'prague': { 'longitude': (14,15), 'latitude': (49.7,50.3)}
@@ -65,6 +63,7 @@ def _():
     import marimo as mo
     return (
         classification_report,
+        draw_module,
         engine,
         geo,
         hmm,
@@ -90,190 +89,22 @@ def _():
 
 
 @app.cell
-def _(engine, pd, prep, timeDelta, zts):
-    # Load data into DataFrame
-    query = """
-            SELECT dr.id,
-                dr.id_clinic,
-                dr.id_person,
-                dr.draw_number,
-                dr.draw_character_ident AS draw_character,
-                dr.migrated_draw_ident AS deprecated_draw_character,
-                dr.draw_date AS datetime,
-                dr.draw_date::date AS date,
-                EXTRACT(HOUR FROM dr.draw_date) AS hour,
-                EXTRACT(DOW FROM dr.draw_date) + 1 AS weekday,
-                EXTRACT(MONTH FROM dr.draw_date) AS month,
-                TO_CHAR(DATE_TRUNC('year', dr.draw_date), 'YYYY') AS year_period,
-                TO_CHAR(DATE_TRUNC('month', dr.draw_date), 'YYYY-MM') AS month_period,
-                TO_CHAR(dr.draw_date, 'IYYY-"W"IW') AS week_period,
-                EXTRACT(YEAR FROM dr.draw_date) AS year,
-                COALESCE(trim(pr.dm_collected_ml_draw)::integer, 0) AS collected,
-                pay.amount as payed_to_donor,
-                CASE
-                    WHEN per.birthdate IS NULL 
-                        OR per.birthdate > CURRENT_DATE 
-                        OR per.birthdate < CURRENT_DATE - INTERVAL '130 years'
-                    THEN NULL
-                    ELSE EXTRACT(YEAR FROM AGE(CURRENT_DATE, per.birthdate))
-                END AS age_years,
-                adr.zip_code as postal_code,
-                (
-                    SELECT COUNT(*) 
-                    FROM donor.draw d2
-                    JOIN donor.draw_process as pr2 ON d2.id = pr2.id_draw
-                    WHERE d2.id_person = dr.id_person
-                    AND d2.draw_date < dr.draw_date
-                    AND d2.draw_date >= dr.draw_date - INTERVAL '1 month'
-                    AND d2.draw_character_ident <> 'Z'
-                    AND pr.dm_collected_ml_draw IS NOT NULL
-                ) AS freq_last_month,
-                cl.name AS clinic_name,
-                prof.name AS proffesion_name,
-                per.sex AS person_sex,
-                LAG(dr.draw_character_ident, 1) OVER (
-                    PARTITION BY dr.id_person 
-                    ORDER BY dr.draw_date
-                ) AS previous_draw_character,
-                LAG(dr.draw_date, 1) OVER (
-                    PARTITION BY dr.id_person 
-                    ORDER BY dr.draw_date
-                ) AS previous_draw_date,
-                LEAD(dr.draw_character_ident, 1) OVER (
-                    PARTITION BY dr.id_person 
-                    ORDER BY dr.draw_date
-                ) AS next_draw_character,
-                der.removing_after_draw_reason_id IS NOT NULL AS is_canceled_before_draw,
-                der.removing_before_draw_reason_id IS NOT NULL AS is_canceled_after_draw,
-                (der.removing_after_draw_reason_id IS NOT NULL OR der.removing_before_draw_reason_id IS NOT NULL) AS is_canceled
-
-            FROM donor.draw as dr
-            LEFT JOIN donor.draw_process as pr ON dr.id = pr.id_draw
-            LEFT JOIN donor.draw_payment as pay ON dr.id = pay.id_draw
-            LEFT JOIN donor.person as per ON dr.id_person = per.id
-            LEFT JOIN donor.address as adr ON per.id_address = adr.id
-            LEFT JOIN list.profession as prof ON per.id_profession = prof.id
-            LEFT JOIN list.clinic as cl ON dr.id_clinic = cl.id
-            LEFT JOIN donor.draw_examination_room der ON der.id_draw = dr.id
-            ;
-            """
-    history = pd.read_sql(query, engine)
-
-    uzis_query = """
-            SELECT
-                udr.id as id_import,
-                imp.id_person,
-                per.id_uzis_rid,
-                per.firstname,
-                per.surname,
-                per.email,
-                per.phone,
-                per.birthdate,
-                per.doctor_name,
-                per.remove_as,
-                pro.id as id_profession,
-                pro.name as profession,
-                nat.name as country_name,
-                nat.country_code,
-                udr.draw_date,
-                udr.clinic_code,
-                udr.clinic_name,
-                udr.clinic_ic,
-                udr.clinic_company
-            FROM technical.uzis_draws_import as imp
-            LEFT JOIN donor.uzis_draws as udr ON imp.id = udr.id_uzis_draws_import
-            LEFT JOIN donor.person as per ON imp.id_person = per.id
-            LEFT JOIN list.profession as pro ON pro.id = per.id_profession
-            LEFT JOIN list.nationality as nat ON nat.id = per.id_nationality
-            ;
-            """
-    uzis_history = pd.read_sql(uzis_query, engine)
-
-    # UZIS draws
-    our_company_name = 'Cara Plasma s.r.o.'
-
-    # odbery u nas
-    uzis_history['is_our_company_draw'] = uzis_history['clinic_company'] == our_company_name
-
-    # odbery u konkurence
-    uzis_history['is_other_company_draw'] = uzis_history['clinic_company'] != our_company_name
-
-    # odbery darcu kteri chodi jen k nam
-    uzis_history['is_not_loyal_to_our_company'] = (
-        uzis_history
-        .groupby('id_person')['is_other_company_draw']
-        .transform('any')
-    )
-
-    # odbery darcu kteri chodi k nam i ke konkurenci
-    uzis_history['is_visiting_our_and_other_company'] = (
-        uzis_history.groupby('id_person')['is_our_company_draw'].transform('any') &
-        uzis_history.groupby('id_person')['is_other_company_draw'].transform('any')
-    )
-
-    our_company_name = 'Cara Plasma s.r.o.'
-
-    # odbery u nas
-    uzis_history['is_our_company_draw'] = uzis_history['clinic_company'] == our_company_name
-
-    # odbery u konkurence
-    uzis_history['is_other_company_draw'] = uzis_history['clinic_company'] != our_company_name
-
-    # odbery darcu kteri chodi jen k nam
-    uzis_history['is_not_loyal_to_our_company'] = (
-        uzis_history
-        .groupby('id_person')['is_other_company_draw']
-        .transform('any')
-    )
-
-    # odbery darcu kteri chodi k nam i ke konkurenci
-    uzis_history['is_visiting_our_and_other_company'] = (
-        uzis_history.groupby('id_person')['is_our_company_draw'].transform('any') &
-        uzis_history.groupby('id_person')['is_other_company_draw'].transform('any')
-    )
-
-    locations, locations_unique = prep.load_locations(engine)
-    history = prep.join_longitute_latitude(history, locations_unique)
-    ztsList = zts.load_zts_list_from_db(engine)
-    face_features = prep.load_face_features_from_db(engine)
-    history = prep.join_face_features_to_history(history, face_features)
-    history = prep.calculate_is_not_fine(history)
-    history['looks_older'] = history.age_years - history.age_detected
-    clinics = prep.load_clinics(locations_unique, engine)
-    history['daysOfCompany'] = (history['datetime'] - history['datetime'].min()).dt.days
-    _bins = [17, 25, 35, 45, 55, 65]
-    labels = ['18–25', '26–35', '36–45', '46–55', '56–65']
-    history['age_group'] = pd.cut(history['age_years'], bins=_bins, labels=labels)
-    history['is_newbie'] = history['previous_draw_date'].isna()
-    history['is_Z'] = history['draw_character'] == 'Z'
-    history['is_A'] = history['draw_character'] == 'A'
-    history['is_K'] = history['draw_character'] == 'K'
-    history['is_R'] = history['draw_character'] == 'R'
-    history['is_repeating_Z'] = history['is_Z'] & (history['previous_draw_character'] != 'Z') & history['previous_draw_date'].notna()
-    history['is_double_Z'] = history['is_Z'] & (history['previous_draw_character'] == 'Z') & history['previous_draw_date'].notna()
-    history = history.merge(uzis_history.groupby('id_person')[['is_not_loyal_to_our_company', 'is_visiting_our_and_other_company']].any().reset_index(), on='id_person', how='left')
-
-    colLowerThreshold = 0
-    colUpperThreshold = 1100
-    payedExceptionalUpperThreshold = 1500
-    print('Filtering out exceptional values')
-    print('Collected null {colNull}%'.format(colNull=history.collected.isna().mean() * 100))
-    print('Collected below {colLowerThreshold}ml {colLower}%,\nCollected above {colUpperThreshold}ml {colUpper}%'.format(colLowerThreshold=colLowerThreshold, colUpperThreshold=colUpperThreshold, colLower=(history.collected < colLowerThreshold).mean() * 100, colUpper=(history.collected > colUpperThreshold).mean() * 100))
-    print('Payed above {payedExceptionalUpperThreshold}ml {payedExceptionalUpper}%'.format(payedExceptionalUpperThreshold=payedExceptionalUpperThreshold, payedExceptionalUpper=(history.collected > colUpperThreshold).mean() * 100))
-    print('Missing or invalid age {invalidAge}%'.format(invalidAge=history.age_years.isna().mean() * 100))
-    history = history[(history.collected < colUpperThreshold) & (history.collected >= colLowerThreshold)]
-    history = history[(history.payed_to_donor < payedExceptionalUpperThreshold) & (history.payed_to_donor >= 0)]
-    print('Keept {total}% of original dataset'.format(total=100 * history.shape[0] / history.shape[0]))
-
-    history = prep.limit_data_to_complete_periods(history, timeDelta)
-
-    #conf_vars
-
-    start_date = history["datetime"].min()
-    end_date = history["datetime"].max()
-    cutoff_end = end_date - pd.DateOffset(months=6)  # cut of few months at the end because of tail artefacts (kde)
-    last_year = end_date - pd.DateOffset(months=12)
-    last_two_years = end_date - pd.DateOffset(months=24)
+def _(draw_module, engine, timeDelta):
+    # Create complete history dataset using the new module
+    data = draw_module.create_history_dataset(engine, timeDelta)
+    
+    # Unpack the data dictionary for backward compatibility
+    history = data['history']
+    uzis_history = data['uzis_history']
+    clinics = data['clinics']
+    ztsList = data['ztsList']
+    start_date = data['start_date']
+    end_date = data['end_date']
+    cutoff_end = data['cutoff_end']
+    last_year = data['last_year']
+    last_two_years = data['last_two_years']
+    our_company_name = data['our_company_name']
+    
     return (
         clinics,
         cutoff_end,
@@ -310,38 +141,9 @@ def _(history):
 
 
 @app.cell
-def _(history, np, timeDelta):
-    dailyStats = history.groupby(timeDelta).agg(
-    # dailyStats = history[history["datetime"] > last_two_years].groupby(timeDelta).agg(
-        office_count=('id_clinic', 'nunique'),
-        draw_count=('id', 'count'),
-        collected_median=('collected', 'median'),
-        collected_sum=('collected', 'sum'),
-        payed_to_donor_mean=('payed_to_donor', 'mean'),
-        payed_to_donor_sum=('payed_to_donor', 'sum'),
-        age_mean=('age_years', 'mean'),
-        freq_last_month_mean=('freq_last_month', 'mean'),
-        is_newbie=('is_newbie', 'sum'),
-        is_canceled=('is_canceled', 'sum'),
-        is_Z=('is_Z', 'sum'),
-        is_repeating_z=('is_repeating_Z', 'sum'),
-        is_double_z=('is_double_Z', 'sum'),
-        is_A=('is_A', 'sum'),
-        is_K=('is_K', 'sum'),
-        is_R=('is_R', 'sum'),
-        month_mean=('month', 'mean'),
-        weekday_mean=('weekday', 'mean'),
-        year_mean=('year', 'mean'),
-        is_not_fine=('is_not_fine', 'mean'),
-        emotion_happy=('emotion_happy', 'median'),
-        emotion_angry=('emotion_angry', 'median'),
-    ).reset_index()  # makes 'date' a column
-
-    dailyStats['Z_to_A_ratio'] = dailyStats['is_A'] / dailyStats['is_Z']
-    dailyStats['Z_to_A_ratio'] = dailyStats['Z_to_A_ratio'].replace([np.inf, -np.inf], 0)
-    dailyStats['A_to_R_ratio'] = (
-        dailyStats['is_R'] / dailyStats['is_A']
-    ).clip(upper=2)
+def _(draw_module, history, timeDelta):
+    # Use the new module to create daily stats
+    dailyStats = draw_module.create_daily_stats(history, timeDelta)
     return (dailyStats,)
 
 
