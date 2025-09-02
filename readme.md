@@ -35,7 +35,7 @@ This project feeds data from various data sources into cis_war db for future pro
 
 To run:
 ```bash
-python -m data_ingestion.main
+python data_ingestion.main
 ```
 
 ## Experiments

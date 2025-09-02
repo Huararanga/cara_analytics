@@ -40,13 +40,13 @@ C:/Users/lukas/AppData/Local/Programs/Python/Python311/Scripts/uvicorn.exe app.m
 
 Run all tests:
 cd data_ingestion
-python -m pytest
+pytest
 
 Run specific test file:
-python -m pytest tests/test_population_density_loader.py
+pytest tests/test_population_density_loader.py
 
 Run with coverage:
-python -m pytest --cov=data_ingestion
+pytest --cov=data_ingestion
 
 Verbose output:
-python -m pytest -v
+pytest -v

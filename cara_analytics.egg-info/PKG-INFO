@@ -1,0 +1,21 @@
+Metadata-Version: 2.4
+Name: cara-analytics
+Version: 0.1.0
+Summary: Cara Analytics - Plasma donation data analysis
+Author: Cara Team
+License: MIT
+Requires-Python: >=3.8
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: matplotlib
+Requires-Dist: seaborn
+Requires-Dist: scikit-learn
+Requires-Dist: sqlalchemy
+Requires-Dist: psycopg2-binary
+Requires-Dist: python-dotenv
+Requires-Dist: marimo
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-cov; extra == "dev"
+Requires-Dist: black; extra == "dev"
+Requires-Dist: flake8; extra == "dev"
