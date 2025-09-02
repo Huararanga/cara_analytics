@@ -22,6 +22,7 @@ geopandas
 hmmlearn
 xgboost
 openai
+tabulate
 
 [dev]
 pytest

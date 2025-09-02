@@ -1,6 +1,5 @@
 import marimo
 
-
 __generated_with = "0.15.2"
 app = marimo.App()
 
@@ -252,9 +251,6 @@ def _(engine, pd, prep, timeDelta, zts):
     history['is_R'] = history['draw_character'] == 'R'
     history['is_repeating_Z'] = history['is_Z'] & (history['previous_draw_character'] != 'Z') & history['previous_draw_date'].notna()
     history['is_double_Z'] = history['is_Z'] & (history['previous_draw_character'] == 'Z') & history['previous_draw_date'].notna()
-    history['is_K_collected'] = history['collected'].where(history['is_K'], 0)
-    history['is_A_collected'] = history['collected'].where(history['is_A'], 0)
-    history['is_R_collected'] = history['collected'].where(history['is_R'], 0)
     history = history.merge(uzis_history.groupby('id_person')[['is_not_loyal_to_our_company', 'is_visiting_our_and_other_company']].any().reset_index(), on='id_person', how='left')
 
     colLowerThreshold = 0
@@ -333,9 +329,6 @@ def _(history, np, timeDelta):
         is_A=('is_A', 'sum'),
         is_K=('is_K', 'sum'),
         is_R=('is_R', 'sum'),
-        is_A_collected=('is_A_collected', 'sum'),
-        is_K_collected=('is_K_collected', 'sum'),
-        is_R_collected=('is_R_collected', 'sum'),
         month_mean=('month', 'mean'),
         weekday_mean=('weekday', 'mean'),
         year_mean=('year', 'mean'),
@@ -951,7 +944,6 @@ def _(plt):
         plt.show()
 
         return subG
-
     return nx, plot_top_nodes
 
 
@@ -964,7 +956,6 @@ def _(nx, plot_top_nodes, recom):
     out_degrees = dict(recommender_graph.out_degree())
     top_out = [n for n, _ in sorted(out_degrees.items(), key=lambda x: x[1], reverse=True)[:200]]
     plot_top_nodes(recommender_graph, top_out, layout='spring')
-
 
     return
 

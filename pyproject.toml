@@ -34,6 +34,7 @@ dependencies = [
     "hmmlearn",
     "xgboost",
     "openai",
+    "tabulate",
 ]
 
 [project.optional-dependencies]

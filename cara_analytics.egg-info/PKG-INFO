@@ -29,6 +29,7 @@ Requires-Dist: geopandas
 Requires-Dist: hmmlearn
 Requires-Dist: xgboost
 Requires-Dist: openai
+Requires-Dist: tabulate
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
 Requires-Dist: pytest-mock; extra == "dev"
