@@ -14,13 +14,15 @@ def run():
             cr.id_recommendation,
             cl.hemo_id AS id_person,
             clr.hemo_id AS id_person_recommendation,
+            cl.id_client AS id_client,
+            clr.id_client AS id_client_recommendation,
             cr.referral AS referral,
             cr.success_closed AS success_closed,
             cr.closed_date
         FROM CP.client_recommendation cr
         JOIN CP.clients cl ON cr.client = cl.id_client
         JOIN CP.clients clr ON cr.recommendation_client = clr.id_client
-        WHERE clr.hemo_id IS NOT NULL AND cl.hemo_id IS NOT NULL;
+        # WHERE clr.hemo_id IS NOT NULL AND cl.hemo_id IS NOT NULL;
     """
     df = pd.read_sql(query, con=central_engine)
 

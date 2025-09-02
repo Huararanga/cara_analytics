@@ -58,8 +58,6 @@ def _():
         'prague': { 'longitude': (14,15), 'latitude': (49.7,50.3)}
     }
 
-    ZTS_LIST_FILE_PATH = "./competitors/list/zts_list.json"
-
     import marimo as mo
     return (
         classification_report,

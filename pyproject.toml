@@ -35,6 +35,7 @@ dependencies = [
     "xgboost",
     "openai",
     "tabulate",
+    "sqlglot",
 ]
 
 [project.optional-dependencies]
