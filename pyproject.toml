@@ -10,20 +10,36 @@ authors = [{name = "Cara Team"}]
 license = {text = "MIT"}
 requires-python = ">=3.8"
 dependencies = [
+    "marimo",
+    "deepface",
+    "insightface", 
+    "onnxruntime-gpu",
+    "tf-keras",
+    "pandas",
     "numpy",
-    "pandas", 
     "matplotlib",
     "seaborn",
     "scikit-learn",
     "sqlalchemy",
     "psycopg2-binary",
+    "pymysql",
+    "boto3",
+    "botocore", 
+    "pyarrow",
+    "fastapi",
+    "uvicorn",
     "python-dotenv",
-    "marimo",
+    "ipywidgets",
+    "geopandas",
+    "hmmlearn",
+    "xgboost",
+    "openai",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest",
+    "pytest-mock",
     "pytest-cov",
     "black",
     "flake8",

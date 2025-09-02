@@ -5,17 +5,33 @@ Summary: Cara Analytics - Plasma donation data analysis
 Author: Cara Team
 License: MIT
 Requires-Python: >=3.8
-Requires-Dist: numpy
+Requires-Dist: marimo
+Requires-Dist: deepface
+Requires-Dist: insightface
+Requires-Dist: onnxruntime-gpu
+Requires-Dist: tf-keras
 Requires-Dist: pandas
+Requires-Dist: numpy
 Requires-Dist: matplotlib
 Requires-Dist: seaborn
 Requires-Dist: scikit-learn
 Requires-Dist: sqlalchemy
 Requires-Dist: psycopg2-binary
+Requires-Dist: pymysql
+Requires-Dist: boto3
+Requires-Dist: botocore
+Requires-Dist: pyarrow
+Requires-Dist: fastapi
+Requires-Dist: uvicorn
 Requires-Dist: python-dotenv
-Requires-Dist: marimo
+Requires-Dist: ipywidgets
+Requires-Dist: geopandas
+Requires-Dist: hmmlearn
+Requires-Dist: xgboost
+Requires-Dist: openai
 Provides-Extra: dev
 Requires-Dist: pytest; extra == "dev"
+Requires-Dist: pytest-mock; extra == "dev"
 Requires-Dist: pytest-cov; extra == "dev"
 Requires-Dist: black; extra == "dev"
 Requires-Dist: flake8; extra == "dev"
