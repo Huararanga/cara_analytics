@@ -35,3 +35,18 @@ C:/Users/lukas/AppData/Local/Programs/Python/Python311/Scripts/uvicorn.exe app.m
 2) Add folder to data_sources, add schema.py here
 3) Add file to loaders folder, place whole processing there. Use other files here as started. Keep convention run to run the ingestion
 4) Add this file to main.py
+
+## Running the Tests
+
+Run all tests:
+cd data_ingestion
+python -m pytest
+
+Run specific test file:
+python -m pytest tests/test_population_density_loader.py
+
+Run with coverage:
+python -m pytest --cov=data_ingestion
+
+Verbose output:
+python -m pytest -v
